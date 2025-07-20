@@ -3,19 +3,19 @@ pipeline {
 	options{ buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5')) }
 	tools {
 	 maven 'apache-maven-3.9.10'
-	 java 'java21'
+	 java 'java_21'
 	 }
 	 stages {
 		stage(' Java version' ) {
 			steps {
 			echo "Hello This is java"
-			sh java --version
+			sh 'java --version'
 			}
 		}
 		stage(' Maven version' ) {
 			steps {
 			echo "Hello This is Maven"
-			sh maven --version
+			sh 'maven --version'
 			}
 		}
 		stage(' Date ' ) {
