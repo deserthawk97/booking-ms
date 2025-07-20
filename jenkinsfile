@@ -1,6 +1,6 @@
 pipeline {
 	agent any
-	options{ buildDiscarded)logRotator(numTokeepStr:'5',artifactNumToKeepStr:'5')) }
+	options{ buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5')) }
 	tools {
 	 maven 'apache-maven-3.9.10'
 	 java 'java21'
