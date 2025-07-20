@@ -12,16 +12,10 @@ pipeline {
 			sh 'java --version'
 			}
 		}
-		stage('Maven version' ) {
-			steps {
-			echo "Hello This is Maven"
-			sh 'maven --version'
-			}
-		}
 		stage(' Date ' ) {
 			steps {
 			echo "This is Date stage"
-			sh date
+			sh 'date'
 			}
 		}
 	 }
