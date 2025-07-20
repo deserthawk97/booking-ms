@@ -12,7 +12,6 @@ pipeline {
 			sh java --version
 			}
 		}
-	 stages {
 		stage(' Maven version' ) {
 			steps {
 			echo "Hello This is Maven"
