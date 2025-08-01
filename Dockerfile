@@ -4,5 +4,5 @@ RUN rm -rf /usr/local/tomcat/webapps/ROOT
 RUN useradd -m booking-ms
 COPY ./target/booking-ms*.jar  /usr/local/tomcat/webapps/
 EXPOSE 8080
-user booking-ms
+USER booking-ms
 CMD ["catalina.sh","run"]
