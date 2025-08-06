@@ -49,18 +49,18 @@ pipeline {
             stage('Push Docker Image to Amazon ECR') {
                 steps {
                     script {
-                        withDockerRegistry([credentialsId: 'ecr-upload-credentials', url: "https://775440507144.dkr.ecr.us-east-1.amazonaws.com"]) {
-                            echo 'Tagging and Pushing Docker Image to ECR...'
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'ecr-upload-credentials']]) {
                             sh '''
-                                docker images
+                                aws ecr get-login-password --region us-east-1 | \
+                                    docker login --username AWS --password-stdin 775440507144.dkr.ecr.us-east-1.amazonaws.com
+
                                 docker tag booking-ms:latest 775440507144.dkr.ecr.us-east-1.amazonaws.com/booking-ms:latest
                                 docker push 775440507144.dkr.ecr.us-east-1.amazonaws.com/booking-ms:latest
                             '''
-                            echo 'Docker Image Pushed to Amazon ECR Successfully!'
                         }
                     }
                 }
-    		}
+            }
             stage('Cleanup Docker Images') {
                 steps {
                     echo 'Cleaning up local Docker images...'
