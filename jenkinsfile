@@ -1,0 +1,102 @@
+pipeline {
+	agent any
+	options { buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5')) }
+	tools {
+		maven 'apache-maven-3.9.10'
+		jdk 'java_21'
+		}
+	stages {
+		stage( 'Code complilation') {
+			steps {
+				echo "This step is code compilation"
+				sh 'mvn clean compile'
+				echo "Code Compilation completed"
+				}
+			}
+         stage('SonarQube Code Quality') {
+                    environment {
+                        scannerHome = tool 'qube'
+                    }
+                    steps {
+                        echo 'Starting SonarQube Code Quality Scan...'
+                        withSonarQubeEnv('sonar-server') {
+                            sh 'mvn sonar:sonar'
+                        }
+                        echo 'SonarQube Scan Completed. Checking Quality Gate...'
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: true
+                        }
+                        echo 'Quality Gate Check Completed!'
+                    }
+                }
+			stage( 'Code Package') {
+			steps {
+				echo "This step is code compilation"
+				sh 'mvn clean package'
+				echo "Code Package is completed"
+				}
+			}
+	        stage('Build & Tag Docker Image') {
+                steps {
+                    echo 'Building Docker Image with Tags...'
+                    sh "docker build -t sushankumar97/booking-ms:latest -t booking-ms:latest ."
+                    echo 'Docker Image Build Completed!'
+                }
+            }
+            stage('Docker Image Scanning') {
+                steps {
+                    echo 'Scanning Docker Image with Trivy...'
+                    sh 'trivy image deserthawk97/booking-ms:latest || echo "Scan Failed - Proceeding with Caution"'
+                    echo 'Docker Image Scanning Completed!'
+                }
+            }
+            stage('Push Docker Image to Docker Hub') {
+                steps {
+                    script {
+                        withCredentials([string(credentialsId: 'dockerhubCred', variable: 'dockerhubCred')]) {
+                            sh 'docker login docker.io -u sushankumar97 -p ${dockerhubCred}'
+                            echo 'Pushing Docker Image to Docker Hub...'
+                            sh 'docker push sushankumar97/booking-ms:latest'
+                            echo 'Docker Image Pushed to Docker Hub Successfully!'
+                        }
+                    }
+                }
+            }
+            stage('Push Docker Image to Amazon ECR') {
+                steps {
+                    script {
+                        withDockerRegistry([credentialsId: 'ecr:us-east-1:ecr-upload-credentials', url: "https://775440507144.dkr.ecr.us-east-1.amazonaws.com"]) {
+                            echo 'Tagging and Pushing Docker Image to ECR...'
+                            sh '''
+                                docker images
+                                docker tag booking-ms:latest 775440507144.dkr.ecr.us-east-1.amazonaws.com/booking-ms:latest
+                                docker push 775440507144.dkr.ecr.us-east-1.amazonaws.com/booking-ms:latest
+                            '''
+                            echo 'Docker Image Pushed to Amazon ECR Successfully!'
+                        }
+                    }
+                }
+    		}
+            stage('Upload Docker Image to Nexus') {
+                steps {
+                    script {
+                        withCredentials([usernamePassword(credentialsId: 'nexuscred', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                            sh 'docker login http://3.89.117.130:8085/repository/booking-ms/ -u admin -p ${PASSWORD}'
+                            echo "Push Docker Image to Nexus : In Progress"
+                            sh 'docker tag booking-ms 3.89.117.130:8085/booking-ms:latest'
+                            sh 'docker push 3.89.117.130:8085/booking-ms'
+                            echo "Push Docker Image to Nexus : Completed"
+                        }
+                    }
+                }
+            }
+            stage('Cleanup Docker Images') {
+                steps {
+                    echo 'Cleaning up local Docker images...'
+                    sh 'docker rmi -f $(docker images -aq)'
+                    echo 'Local Docker images deleted successfully!'
+                }
+            }
+		}
+}
+
